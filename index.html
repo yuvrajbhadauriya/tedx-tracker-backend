@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TEDxVIPS Sponsor Deliverable Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 40; }
+        .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 50; }
+        .kanban-column { min-height: 200px; }
+        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #f8f9fa; z-index: 100; display: flex; justify-content: center; align-items: center; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- Login Overlay -->
+    <div id="login-overlay">
+        <div class="w-full max-w-sm p-8 bg-white rounded-lg shadow-xl">
+            <h1 class="text-3xl font-bold text-red-600 text-center">TEDxVIPS</h1>
+            <h2 class="text-xl font-medium text-gray-600 text-center mb-8">Tracker Login</h2>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                    <input type="text" id="username" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500" required>
+                </div>
+                <div class="mb-4">
+                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="password" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500" required>
+                </div>
+                <p id="login-error" class="text-sm text-red-600 mb-4 hidden">Invalid username or password.</p>
+                <button type="submit" class="w-full px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div id="app-container" class="container mx-auto p-4 md:p-8 hidden">
+        <header class="flex flex-col md:flex-row justify-between items-start mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-red-600">TEDxVIPS</h1>
+                <h2 class="text-xl font-medium text-gray-600">Sponsor Deliverable Tracker</h2>
+                <p id="user-display" class="text-sm text-gray-500 mt-2"></p>
+            </div>
+            <!-- Reminder Section -->
+            <div id="reminder-section" class="mt-4 md:mt-0 w-full md:w-auto md:max-w-md bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md shadow-sm">
+                <h3 class="font-bold">Upcoming Deadlines (Next 3 Days)</h3>
+                <ul id="reminder-list" class="mt-2 list-disc list-inside text-sm">
+                    <!-- Reminders will be populated here -->
+                </ul>
+            </div>
+        </header>
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <div class="flex space-x-2 bg-gray-200 p-1 rounded-lg">
+                <button id="board-view-btn" class="px-4 py-2 text-sm font-semibold rounded-md bg-white shadow">Board View</button>
+                <button id="list-view-btn" class="px-4 py-2 text-sm font-semibold rounded-md text-gray-600">List View</button>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                <button id="send-reminders-btn" class="w-full sm:w-auto bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-300 shadow-md" style="display: none;">Send Reminders</button>
+                <button id="manage-team-btn" class="w-full sm:w-auto bg-gray-700 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-800 transition duration-300 shadow-md">Manage Team</button>
+                <button id="add-deliverable-btn" class="w-full sm:w-auto bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition duration-300 shadow-md">+ Add Deliverable</button>
+            </div>
+        </div>
+        <main id="content-area">
+            <div id="board-view" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"></div>
+            <div id="list-view" class="hidden bg-white rounded-lg shadow-md overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deliverable</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sponsor</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">POC</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="list-view-body" class="bg-white divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-backdrop" class="modal-backdrop"></div>
+    <div id="deliverable-modal" class="modal w-11/12 md:max-w-lg bg-white rounded-lg shadow-2xl p-6">
+        <h3 id="modal-title" class="text-2xl font-bold mb-6">Add New Deliverable</h3>
+        <form id="deliverable-form">
+            <input type="hidden" id="deliverable-id">
+            <div class="mb-4">
+                <label for="deliverable-name" class="block text-sm font-medium text-gray-700">Deliverable</label>
+                <input type="text" id="deliverable-name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md" required>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="sponsor-name" class="block text-sm font-medium text-gray-700">Sponsor</label>
+                    <input type="text" id="sponsor-name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md" required>
+                </div>
+                <div>
+                    <label for="poc-select" class="block text-sm font-medium text-gray-700">POC</label>
+                    <select id="poc-select" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md" required></select>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="due-date" class="block text-sm font-medium text-gray-700">Due Date</label>
+                    <input type="date" id="due-date" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md" required>
+                </div>
+                <div>
+                    <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
+                    <select id="status" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <option>To-Do</option><option>In Progress</option><option>Pending Approval</option><option>Done</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label for="notes" class="block text-sm font-medium text-gray-700">Notes/Links</label>
+                <textarea id="notes" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
+            </div>
+            <div class="flex justify-end space-x-4 mt-8">
+                <button type="button" class="cancel-btn px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-red-600 text-white font-bold rounded-lg">Save</button>
+            </div>
+        </form>
+    </div>
+    <div id="team-modal" class="modal w-11/12 md:max-w-md bg-white rounded-lg shadow-2xl p-6">
+        <h3 class="text-2xl font-bold mb-6">Manage Team (POCs)</h3>
+        <form id="team-form" class="mb-6" style="display: none;">
+            <label for="new-member-name" class="block text-sm font-medium text-gray-700">Add New Member</label>
+            <div class="mt-1 flex flex-col sm:flex-row gap-2 rounded-md shadow-sm">
+                <input type="text" id="new-member-name" placeholder="Enter name" class="flex-1 block w-full px-3 py-2 border rounded-md" required>
+                <input type="tel" id="new-member-phone" placeholder="Phone (e.g. +91...)" class="flex-1 block w-full px-3 py-2 border rounded-md">
+                <button type="submit" class="inline-flex items-center justify-center px-4 py-2 border text-sm font-medium rounded-md text-white bg-red-600">Add</button>
+            </div>
+        </form>
+        <h4 class="text-lg font-medium text-gray-800 mb-2">Current Team</h4>
+        <ul id="team-member-list" class="space-y-2 max-h-60 overflow-y-auto"></ul>
+        <div class="flex justify-end mt-8">
+            <button type="button" class="cancel-btn px-4 py-2 bg-gray-200 rounded-lg">Close</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = ''; // The address of your Python backend - Leave empty since it's served from the same place
+        let deliverables = [], teamMembers = [];
+        let currentUser = { username: null, is_superuser: false };
+        const KANBAN_STATUSES = ['To-Do', 'In Progress', 'Pending Approval', 'Done'];
+
+        // --- UI Elements ---
+        const allModals = document.querySelectorAll('.modal');
+        const modalBackdrop = document.getElementById('modal-backdrop');
+        
+        // --- API Functions ---
+        async function apiFetch(endpoint, options = {}) {
+            const response = await fetch(`${API_URL}${endpoint}`, options);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: 'An unknown error occurred.' }));
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        }
+
+        // --- App Logic ---
+        async function main() {
+            await Promise.all([fetchDeliverables(), fetchTeam(), fetchReminders()]);
+            render();
+            updateUIAccess();
+        }
+
+        async function fetchDeliverables() {
+            deliverables = await apiFetch('/api/deliverables');
+        }
+
+        async function fetchTeam() {
+            teamMembers = await apiFetch('/api/team');
+        }
+        
+        async function fetchReminders() {
+            const reminders = await apiFetch('/api/reminders');
+            renderReminders(reminders);
+        }
+
+        // --- Rendering ---
+        function render() {
+            renderBoardView();
+            renderListView();
+        }
+        
+        function renderReminders(reminders) {
+            const reminderList = document.getElementById('reminder-list');
+            const reminderSection = document.getElementById('reminder-section');
+            reminderList.innerHTML = '';
+            if (reminders.length === 0) {
+                reminderSection.style.display = 'none';
+                return;
+            }
+            reminderSection.style.display = 'block';
+            reminders.forEach(r => {
+                const li = document.createElement('li');
+                const dueDate = new Date(r.dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                li.innerHTML = `<strong>${r.name}</strong> for ${r.sponsor} is due ${dueDate}. (POC: ${r.pocName})`;
+                reminderList.appendChild(li);
+            });
+        }
+        
+        function renderBoardView() {
+            const boardView = document.getElementById('board-view');
+            boardView.innerHTML = '';
+            KANBAN_STATUSES.forEach(status => {
+                const column = document.createElement('div');
+                column.className = 'bg-gray-100 rounded-lg p-4';
+                column.dataset.status = status;
+                const statusColor = {'To-Do': 'bg-blue-500', 'In Progress': 'bg-yellow-500', 'Pending Approval': 'bg-purple-500', 'Done': 'bg-green-500'}[status];
+                column.innerHTML = `<h3 class="font-bold text-lg mb-4 flex items-center"><span class="w-3 h-3 rounded-full ${statusColor} mr-2"></span>${status}</h3><div class="space-y-4 kanban-column" id="column-${status.replace(/\s+/g, '-')}"></div>`;
+                boardView.appendChild(column);
+                column.addEventListener('dragover', e => { e.preventDefault(); column.classList.add('bg-gray-200'); });
+                column.addEventListener('dragleave', () => column.classList.remove('bg-gray-200'));
+                column.addEventListener('drop', handleDrop);
+            });
+            deliverables.forEach(d => {
+                const columnContent = document.getElementById(`column-${d.status.replace(/\s+/g, '-')}`);
+                if (columnContent) columnContent.appendChild(createDeliverableCard(d));
+            });
+        }
+        
+        function createDeliverableCard(d) {
+            const card = document.createElement('div');
+            card.className = 'bg-white p-4 rounded-lg shadow-sm cursor-grab active:cursor-grabbing';
+            card.draggable = true;
+            card.dataset.id = d.id;
+            const dueDateInfo = getDueDateInfo(d.dueDate);
+            card.innerHTML = `<h4 class="font-bold text-md">${d.name}</h4><p class="text-sm text-gray-500 mb-2">${d.sponsor}</p><div class="flex justify-between items-center text-xs mt-3"><span class="font-semibold ${dueDateInfo.textColor}">${dueDateInfo.formatted}</span><span class="font-medium bg-gray-100 px-2 py-1 rounded-full">${d.pocName || 'N/A'}</span></div>`;
+            card.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', e.target.dataset.id));
+            card.addEventListener('click', () => openDeliverableModal(d));
+            return card;
+        }
+
+        function renderListView() {
+            const listViewBody = document.getElementById('list-view-body');
+            listViewBody.innerHTML = '';
+            if (deliverables.length === 0) {
+                 listViewBody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-500">No deliverables yet.</td></tr>`;
+                 return;
+            }
+            deliverables.forEach(d => {
+                const row = document.createElement('tr');
+                const dueDateInfo = getDueDateInfo(d.dueDate);
+                row.innerHTML = `<td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-semibold text-gray-900">${d.name}</div></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${d.sponsor}</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${d.pocName || 'N/A'}</td><td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${dueDateInfo.badgeColor}">${dueDateInfo.formatted}</span></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${d.status}</td><td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><button class="text-red-600 hover:text-red-900 delete-btn" data-id="${d.id}">Delete</button></td>`;
+                listViewBody.appendChild(row);
+            });
+            document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (confirm('Are you sure?')) {
+                    try {
+                        await apiFetch(`/api/deliverables/${e.target.dataset.id}`, { method: 'DELETE' });
+                        main();
+                    } catch (error) {
+                        alert(error.message);
+                    }
+                }
+            }));
+        }
+
+        function getDueDateInfo(dueDateString) {
+            if (!dueDateString) return { formatted: 'N/A', badgeColor: 'bg-gray-200 text-gray-600', textColor: 'text-gray-500' };
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const dueDate = new Date(dueDateString); dueDate.setHours(0, 0, 0, 0);
+            const timeDiff = dueDate.getTime() - today.getTime();
+            const dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+            const formatted = new Date(dueDateString + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            if (dayDiff < 0) return { formatted, badgeColor: 'bg-red-100 text-red-800', textColor: 'text-red-600' };
+            if (dayDiff <= 3) return { formatted, badgeColor: 'bg-yellow-100 text-yellow-800', textColor: 'text-yellow-600' };
+            return { formatted, badgeColor: 'bg-gray-200 text-gray-600', textColor: 'text-gray-500' };
+        }
+
+        // --- Modals and Forms ---
+        function openModal(modalEl) { modalEl.style.display = 'block'; modalBackdrop.style.display = 'block'; }
+        function closeModal() { allModals.forEach(m => m.style.display = 'none'); modalBackdrop.style.display = 'none'; }
+        
+        function openDeliverableModal(d = null) {
+            const form = document.getElementById('deliverable-form');
+            form.reset();
+            populatePocDropdown();
+            if (d) {
+                document.getElementById('modal-title').textContent = 'Edit Deliverable';
+                document.getElementById('deliverable-id').value = d.id;
+                document.getElementById('deliverable-name').value = d.name;
+                document.getElementById('sponsor-name').value = d.sponsor;
+                document.getElementById('poc-select').value = d.pocId;
+                document.getElementById('due-date').value = d.dueDate;
+                document.getElementById('status').value = d.status;
+                document.getElementById('notes').value = d.notes;
+            } else {
+                document.getElementById('modal-title').textContent = 'Add New Deliverable';
+                document.getElementById('deliverable-id').value = '';
+            }
+            openModal(document.getElementById('deliverable-modal'));
+        }
+
+        function populatePocDropdown() {
+            const pocSelect = document.getElementById('poc-select');
+            pocSelect.innerHTML = '<option value="">-- Select a POC --</option>';
+            teamMembers.forEach(m => pocSelect.innerHTML += `<option value="${m.id}">${m.name}</option>`);
+        }
+        
+        function renderTeamList() {
+            const listEl = document.getElementById('team-member-list');
+            listEl.innerHTML = teamMembers.map(m => `
+                <li class="flex justify-between items-center bg-gray-100 p-2 rounded-md">
+                    <span class="text-sm font-medium">${m.name} <span class="text-gray-500 text-xs">${m.phoneNumber || ''}</span></span>
+                    ${currentUser.is_superuser ? `<button data-id="${m.id}" class="delete-member-btn text-xs text-red-500">Remove</button>` : ''}
+                </li>
+            `).join('');
+            if (currentUser.is_superuser) {
+                document.querySelectorAll('.delete-member-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+                    try {
+                        await apiFetch(`/api/team/${e.target.dataset.id}`, { method: 'DELETE', headers: { 'Authorization': 'superuser' } });
+                        main();
+                    } catch (error) {
+                        alert(error.message);
+                    }
+                }));
+            }
+        }
+        
+        function updateUIAccess() {
+            const teamForm = document.getElementById('team-form');
+            const sendRemindersBtn = document.getElementById('send-reminders-btn');
+            
+            if (currentUser.is_superuser) {
+                teamForm.style.display = 'block';
+                sendRemindersBtn.style.display = 'block';
+            } else {
+                teamForm.style.display = 'none';
+                sendRemindersBtn.style.display = 'none';
+            }
+
+            document.getElementById('user-display').textContent = `Logged in as: ${currentUser.username} ${currentUser.is_superuser ? '(Admin)' : ''}`;
+            renderTeamList();
+        }
+
+        // --- Event Listeners ---
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            try {
+                const data = await apiFetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                currentUser = data;
+                document.getElementById('login-overlay').style.display = 'none';
+                document.getElementById('app-container').classList.remove('hidden');
+                main();
+            } catch (error) {
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        });
+        
+        document.getElementById('deliverable-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('deliverable-id').value;
+            const body = {
+                name: document.getElementById('deliverable-name').value,
+                sponsor: document.getElementById('sponsor-name').value,
+                pocId: parseInt(document.getElementById('poc-select').value),
+                dueDate: document.getElementById('due-date').value,
+                status: document.getElementById('status').value,
+                notes: document.getElementById('notes').value,
+            };
+            const method = id ? 'PUT' : 'POST';
+            const endpoint = id ? `/api/deliverables/${id}` : '/api/deliverables';
+            try {
+                await apiFetch(endpoint, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                closeModal();
+                main();
+            } catch (error) {
+                alert(error.message);
+            }
+        });
+
+        document.getElementById('team-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('new-member-name').value;
+            const phone = document.getElementById('new-member-phone').value;
+            if (name) {
+                try {
+                    await apiFetch('/api/team', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, phoneNumber: phone, is_superuser: currentUser.is_superuser })
+                    });
+                    e.target.reset();
+                    main();
+                } catch (error) {
+                    alert(error.message);
+                }
+            }
+        });
+        
+        document.getElementById('send-reminders-btn').addEventListener('click', async () => {
+            const response = await apiFetch('/api/trigger-reminders', { method: 'POST' });
+            alert(response.message);
+        });
+
+        async function handleDrop(e) { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); const status = e.currentTarget.dataset.status; try { await apiFetch(`/api/deliverables/status/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) }); main(); } catch(error) { alert(error.message); } }
+        document.getElementById('add-deliverable-btn').addEventListener('click', () => openDeliverableModal());
+        document.getElementById('manage-team-btn').addEventListener('click', () => openModal(document.getElementById('team-modal')));
+        document.querySelectorAll('.cancel-btn').forEach(btn => btn.addEventListener('click', closeModal));
+        modalBackdrop.addEventListener('click', closeModal);
+        // View switcher logic...
+        document.getElementById('board-view-btn').addEventListener('click', (e) => { document.getElementById('board-view').classList.remove('hidden'); document.getElementById('list-view').classList.add('hidden'); e.target.classList.add('bg-white', 'shadow'); document.getElementById('list-view-btn').classList.remove('bg-white', 'shadow'); });
+        document.getElementById('list-view-btn').addEventListener('click', (e) => { document.getElementById('board-view').classList.add('hidden'); document.getElementById('list-view').classList.remove('hidden'); e.target.classList.add('bg-white', 'shadow'); document.getElementById('board-view-btn').classList.remove('bg-white', 'shadow'); });
+
+    </script>
+</body>
+</html>
