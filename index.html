@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TEDxVIPS Sponsor Deliverable Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -16,53 +17,131 @@
 </head>
 <body class="bg-gray-50 text-gray-800">
 
-    <!-- Login Overlay -->
+    <!-- Login/Register Overlay -->
     <div id="login-overlay">
         <div class="w-full max-w-sm p-8 bg-white rounded-lg shadow-xl">
-            <h1 class="text-3xl font-bold text-red-600 text-center">TEDxVIPS</h1>
-            <h2 class="text-xl font-medium text-gray-600 text-center mb-8">Tracker Login</h2>
+            <!-- Login Form -->
             <form id="login-form">
+                <h1 class="text-3xl font-bold text-red-600 text-center">TEDxVIPS</h1>
+                <h2 class="text-xl font-medium text-gray-600 text-center mb-8">Tracker Login</h2>
                 <div class="mb-4">
                     <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                    <input type="text" id="username" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500" required>
+                    <input type="text" id="username" class="mt-1 block w-full px-3 py-2 border rounded-md" required>
                 </div>
                 <div class="mb-4">
                     <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                    <input type="password" id="password" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500" required>
+                    <input type="password" id="password" class="mt-1 block w-full px-3 py-2 border rounded-md" required>
                 </div>
-                <p id="login-error" class="text-sm text-red-600 mb-4 hidden">Invalid username or password.</p>
+                <p id="login-error" class="text-sm text-red-600 mb-4 hidden"></p>
                 <button type="submit" class="w-full px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700">Login</button>
+                <p class="text-center text-sm mt-4">
+                    <a href="#" id="show-register-link" class="font-medium text-red-600 hover:text-red-500">Register for an account</a>
+                </p>
+            </form>
+            <!-- Register Form -->
+            <form id="register-form" class="hidden">
+                <h1 class="text-3xl font-bold text-red-600 text-center">TEDxVIPS</h1>
+                <h2 class="text-xl font-medium text-gray-600 text-center mb-8">Register Account</h2>
+
+                <!-- Add this block for Full Name -->
+                <div class="mb-4">
+                    <label for="register-name" class="block text-sm font-medium text-gray-700">Full Name</label>
+                    <input type="text" id="register-name" class="mt-1 block w-full px-3 py-2 border rounded-md" required>
+                </div>
+
+                <div class="mb-4">
+                    <label for="register-username" class="block text-sm font-medium text-gray-700">Username</label>
+                    <input type="text" id="register-username" class="mt-1 block w-full px-3 py-2 border rounded-md" required>
+                </div>
+                <div class="mb-4">
+                    <label for="register-password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="register-password" class="mt-1 block w-full px-3 py-2 border rounded-md" required>
+                </div>
+
+                <!-- Add this block for Phone Number -->
+                <div class="mb-4">
+                    <label for="register-phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
+                    <input type="tel" id="register-phone" class="mt-1 block w-full px-3 py-2 border rounded-md" placeholder="e.g. 919876543210" required>
+                    <p class="text-xs text-gray-500 mt-1">Include country code, no symbols or spaces.</p>
+                </div>
+
+                <p id="register-error" class="text-sm text-red-600 mb-4 hidden"></p>
+                <p id="register-success" class="text-sm text-green-600 mb-4 hidden"></p>
+                <button type="submit" class="w-full px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700">Register</button>
+                <p class="text-center text-sm mt-4">
+                    <a href="#" id="show-login-link" class="font-medium text-red-600 hover:text-red-500">Back to Login</a>
+                </p>
             </form>
         </div>
     </div>
 
     <!-- Main Container -->
     <div id="app-container" class="container mx-auto p-4 md:p-8 hidden">
-        <header class="flex flex-col md:flex-row justify-between items-start mb-8">
+        <header class="flex flex-col md:flex-row justify-between items-start mb-8 gap-4">
             <div>
                 <h1 class="text-3xl font-bold text-red-600">TEDxVIPS</h1>
                 <h2 class="text-xl font-medium text-gray-600">Sponsor Deliverable Tracker</h2>
-                <p id="user-display" class="text-sm text-gray-500 mt-2"></p>
+                <div class="flex items-center gap-4 mt-2">
+                    <p id="user-display" class="text-sm text-gray-500"></p>
+                    <button id="logout-btn" class="text-xs text-red-500 hover:underline">Logout</button>
+                </div>
             </div>
-            <!-- Reminder Section -->
-            <div id="reminder-section" class="mt-4 md:mt-0 w-full md:w-auto md:max-w-md bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md shadow-sm">
-                <h3 class="font-bold">Upcoming Deadlines (Next 3 Days)</h3>
-                <ul id="reminder-list" class="mt-2 list-disc list-inside text-sm">
-                    <!-- Reminders will be populated here -->
-                </ul>
+            <div id="admin-panel" class="hidden w-full md:w-auto md:max-w-md bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 rounded-md shadow-sm">
+                <h3 class="font-bold">Pending User Registrations</h3>
+                <ul id="pending-users-list" class="mt-2 text-sm"></ul>
             </div>
         </header>
+
+        <!-- Analytics Section -->
+        <div id="analytics-section" class="mb-8 p-4 bg-white rounded-lg shadow-md">
+            <h3 class="text-xl font-bold mb-4">Dashboard Analytics</h3>
+            <!-- This is the corrected code -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Grid Column 1 for the Doughnut Chart -->
+                <div>
+                    <h4 class="text-lg font-semibold text-center mb-2">Deliverables by Status</h4>
+                    <!-- This wrapper div controls the doughnut chart's size -->
+                    <div class="relative mx-auto w-64 h-64">
+                        <canvas id="status-chart"></canvas>
+                    </div>
+                </div>
+                <!-- Grid Column 2 for the Bar Chart -->
+                <div>
+                    <h4 class="text-lg font-semibold text-center mb-2">Deliverables per Sponsor</h4>
+                    <!-- This wrapper gives the bar chart a consistent height -->
+                    <div class="relative h-64">
+                        <canvas id="sponsor-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
         <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
             <div class="flex space-x-2 bg-gray-200 p-1 rounded-lg">
                 <button id="board-view-btn" class="px-4 py-2 text-sm font-semibold rounded-md bg-white shadow">Board View</button>
                 <button id="list-view-btn" class="px-4 py-2 text-sm font-semibold rounded-md text-gray-600">List View</button>
             </div>
             <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-                <button id="send-reminders-btn" class="w-full sm:w-auto bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-300 shadow-md" style="display: none;">Send Reminders</button>
-                <button id="manage-team-btn" class="w-full sm:w-auto bg-gray-700 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-800 transition duration-300 shadow-md">Manage Team</button>
-                <button id="add-deliverable-btn" class="w-full sm:w-auto bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition duration-300 shadow-md">+ Add Deliverable</button>
+                <button id="activity-log-btn" class="w-full sm:w-auto bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">Activity Log</button>
+                <button id="manage-team-btn" class="w-full sm:w-auto bg-gray-700 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-800">Manage Team</button>
+                <button id="add-deliverable-btn" class="w-full sm:w-auto bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700">+ Add Deliverable</button>
+                <button id="send-reminders-btn" class="w-full sm:w-auto bg-yellow-500 text-black font-bold py-2 px-4 rounded-lg hover:bg-yellow-600 hidden">Send Reminders</button>
             </div>
         </div>
+
+        <!-- Reminder Box -->
+        <div id="reminder-section" class="hidden mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
+            <h4 class="font-semibold">Upcoming Deadlines</h4>
+            <ul id="reminder-list" class="mt-2 text-sm"></ul>
+        </div>
+
+        <!-- Filter/Search Section -->
+        <div class="mb-6 bg-white p-4 rounded-lg shadow-md flex flex-col md:flex-row gap-4 items-center">
+            <input type="text" id="search-input" placeholder="Search deliverables..." class="flex-grow p-2 border rounded-md">
+            <select id="poc-filter" class="p-2 border rounded-md"></select>
+            <select id="sponsor-filter" class="p-2 border rounded-md"></select>
+            <button id="clear-filters-btn" class="px-4 py-2 bg-gray-200 rounded-md">Clear</button>
+        </div>
+
         <main id="content-area">
             <div id="board-view" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"></div>
             <div id="list-view" class="hidden bg-white rounded-lg shadow-md overflow-x-auto">
@@ -86,7 +165,7 @@
     <!-- Modals -->
     <div id="modal-backdrop" class="modal-backdrop"></div>
     <div id="deliverable-modal" class="modal w-11/12 md:max-w-lg bg-white rounded-lg shadow-2xl p-6">
-        <h3 id="modal-title" class="text-2xl font-bold mb-6">Add New Deliverable</h3>
+        <h3 id="modal-title" class="text-2xl font-bold mb-6"></h3>
         <form id="deliverable-form">
             <input type="hidden" id="deliverable-id">
             <div class="mb-4">
@@ -125,14 +204,26 @@
             </div>
         </form>
     </div>
+    <!-- In index.html, replace your entire team-modal div with this -->
     <div id="team-modal" class="modal w-11/12 md:max-w-md bg-white rounded-lg shadow-2xl p-6">
-        <h3 class="text-2xl font-bold mb-6">Manage Team (POCs)</h3>
-        <form id="team-form" class="mb-6" style="display: none;">
-            <label for="new-member-name" class="block text-sm font-medium text-gray-700">Add New Member</label>
+        
+        <!-- ID needed for the title -->
+        <h3 id="team-modal-title" class="text-2xl font-bold mb-6">Manage Team (POCs)</h3>
+
+        <form id="team-form" class="mb-6 hidden">
+            
+            <!-- ID needed for the hidden input -->
+            <input type="hidden" id="team-member-id">
+
+            <!-- ID needed for the label -->
+            <label for="new-member-name" id="team-form-label" class="block text-sm font-medium text-gray-700">Add New Member</label>
+            
             <div class="mt-1 flex flex-col sm:flex-row gap-2 rounded-md shadow-sm">
                 <input type="text" id="new-member-name" placeholder="Enter name" class="flex-1 block w-full px-3 py-2 border rounded-md" required>
-                <input type="tel" id="new-member-phone" placeholder="Phone (e.g. +91...)" class="flex-1 block w-full px-3 py-2 border rounded-md">
-                <button type="submit" class="inline-flex items-center justify-center px-4 py-2 border text-sm font-medium rounded-md text-white bg-red-600">Add</button>
+                <input type="tel" id="new-member-phone" placeholder="Phone (e.g. 91...)" class="flex-1 block w-full px-3 py-2 border rounded-md">
+                
+                <!-- ID needed for the submit button -->
+                <button type="submit" id="team-submit-btn" class="inline-flex items-center justify-center px-4 py-2 border text-sm font-medium rounded-md text-white bg-red-600">Add</button>
             </div>
         </form>
         <h4 class="text-lg font-medium text-gray-800 mb-2">Current Team</h4>
@@ -141,281 +232,566 @@
             <button type="button" class="cancel-btn px-4 py-2 bg-gray-200 rounded-lg">Close</button>
         </div>
     </div>
+    <!-- PASTE THIS ENTIRE BLOCK INTO YOUR FILE -->
+    <div id="activity-log-modal" class="modal w-11/12 md:max-w-2xl bg-white rounded-lg shadow-2xl p-6">
+        <h3 class="text-2xl font-bold mb-6">Recent Activity</h3>
+        
+        <!-- This is the list the JavaScript is looking for -->
+        <ul id="activity-log-list" class="space-y-2 max-h-96 overflow-y-auto"></ul>
+
+        <div class="flex justify-end mt-8">
+            <button type="button" class="cancel-btn px-4 py-2 bg-gray-200 rounded-lg">Close</button>
+        </div>
+    </div>
 
     <script>
-        const API_URL = 'https://tedx-tracker-backend.onrender.com'; // The address of your Python backend - Leave empty since it's served from the same place
-        let deliverables = [], teamMembers = [];
-        let currentUser = { username: null, is_superuser: false };
-        const KANBAN_STATUSES = ['To-Do', 'In Progress', 'Pending Approval', 'Done'];
+        document.addEventListener('DOMContentLoaded', () => {
+            // Use window.location.origin so frontend works when served from Flask or other host
+            const API_URL = window.location.origin;
+            let allDeliverables = [], teamMembers = [];
+            let currentUser = { username: null, is_superuser: false };
+            let statusChart, sponsorChart;
+            const KANBAN_STATUSES = ['To-Do', 'In Progress', 'Pending Approval', 'Done'];
 
-        // --- UI Elements ---
-        const allModals = document.querySelectorAll('.modal');
-        const modalBackdrop = document.getElementById('modal-backdrop');
-        
-        // --- API Functions ---
-        async function apiFetch(endpoint, options = {}) {
-            const response = await fetch(`${API_URL}${endpoint}`, options);
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ message: 'An unknown error occurred.' }));
-                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        }
+            const allModals = document.querySelectorAll('.modal');
+            const modalBackdrop = document.getElementById('modal-backdrop');
 
-        // --- App Logic ---
-        async function main() {
-            await Promise.all([fetchDeliverables(), fetchTeam(), fetchReminders()]);
-            render();
-            updateUIAccess();
-        }
-
-        async function fetchDeliverables() {
-            deliverables = await apiFetch('/api/deliverables');
-        }
-
-        async function fetchTeam() {
-            teamMembers = await apiFetch('/api/team');
-        }
-        
-        async function fetchReminders() {
-            const reminders = await apiFetch('/api/reminders');
-            renderReminders(reminders);
-        }
-
-        // --- Rendering ---
-        function render() {
-            renderBoardView();
-            renderListView();
-        }
-        
-        function renderReminders(reminders) {
-            const reminderList = document.getElementById('reminder-list');
-            const reminderSection = document.getElementById('reminder-section');
-            reminderList.innerHTML = '';
-            if (reminders.length === 0) {
-                reminderSection.style.display = 'none';
-                return;
-            }
-            reminderSection.style.display = 'block';
-            reminders.forEach(r => {
-                const li = document.createElement('li');
-                const dueDate = new Date(r.dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                li.innerHTML = `<strong>${r.name}</strong> for ${r.sponsor} is due ${dueDate}. (POC: ${r.pocName})`;
-                reminderList.appendChild(li);
-            });
-        }
-        
-        function renderBoardView() {
-            const boardView = document.getElementById('board-view');
-            boardView.innerHTML = '';
-            KANBAN_STATUSES.forEach(status => {
-                const column = document.createElement('div');
-                column.className = 'bg-gray-100 rounded-lg p-4';
-                column.dataset.status = status;
-                const statusColor = {'To-Do': 'bg-blue-500', 'In Progress': 'bg-yellow-500', 'Pending Approval': 'bg-purple-500', 'Done': 'bg-green-500'}[status];
-                column.innerHTML = `<h3 class="font-bold text-lg mb-4 flex items-center"><span class="w-3 h-3 rounded-full ${statusColor} mr-2"></span>${status}</h3><div class="space-y-4 kanban-column" id="column-${status.replace(/\s+/g, '-')}"></div>`;
-                boardView.appendChild(column);
-                column.addEventListener('dragover', e => { e.preventDefault(); column.classList.add('bg-gray-200'); });
-                column.addEventListener('dragleave', () => column.classList.remove('bg-gray-200'));
-                column.addEventListener('drop', handleDrop);
-            });
-            deliverables.forEach(d => {
-                const columnContent = document.getElementById(`column-${d.status.replace(/\s+/g, '-')}`);
-                if (columnContent) columnContent.appendChild(createDeliverableCard(d));
-            });
-        }
-        
-        function createDeliverableCard(d) {
-            const card = document.createElement('div');
-            card.className = 'bg-white p-4 rounded-lg shadow-sm cursor-grab active:cursor-grabbing';
-            card.draggable = true;
-            card.dataset.id = d.id;
-            const dueDateInfo = getDueDateInfo(d.dueDate);
-            card.innerHTML = `<h4 class="font-bold text-md">${d.name}</h4><p class="text-sm text-gray-500 mb-2">${d.sponsor}</p><div class="flex justify-between items-center text-xs mt-3"><span class="font-semibold ${dueDateInfo.textColor}">${dueDateInfo.formatted}</span><span class="font-medium bg-gray-100 px-2 py-1 rounded-full">${d.pocName || 'N/A'}</span></div>`;
-            card.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', e.target.dataset.id));
-            card.addEventListener('click', () => openDeliverableModal(d));
-            return card;
-        }
-
-        function renderListView() {
-            const listViewBody = document.getElementById('list-view-body');
-            listViewBody.innerHTML = '';
-            if (deliverables.length === 0) {
-                 listViewBody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-500">No deliverables yet.</td></tr>`;
-                 return;
-            }
-            deliverables.forEach(d => {
-                const row = document.createElement('tr');
-                const dueDateInfo = getDueDateInfo(d.dueDate);
-                row.innerHTML = `<td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-semibold text-gray-900">${d.name}</div></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${d.sponsor}</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${d.pocName || 'N/A'}</td><td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${dueDateInfo.badgeColor}">${dueDateInfo.formatted}</span></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${d.status}</td><td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><button class="text-red-600 hover:text-red-900 delete-btn" data-id="${d.id}">Delete</button></td>`;
-                listViewBody.appendChild(row);
-            });
-            document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                if (confirm('Are you sure?')) {
-                    try {
-                        await apiFetch(`/api/deliverables/${e.target.dataset.id}`, { method: 'DELETE' });
-                        main();
-                    } catch (error) {
-                        alert(error.message);
-                    }
+            // Robust fetch helper (sends cookies, handles JSON errors)
+            async function apiFetch(endpoint, options = {}) {
+                options = options || {};
+                if (options.body && !options.headers) options.headers = { 'Content-Type': 'application/json' };
+                options.credentials = 'include';
+                const url = `${API_URL}${endpoint}`;
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    let err = `HTTP error! status: ${response.status}`;
+                    try { const j = await response.json(); err = j.message || JSON.stringify(j); } catch(e) { /* ignore */ }
+                    throw new Error(err);
                 }
-            }));
-        }
-
-        function getDueDateInfo(dueDateString) {
-            if (!dueDateString) return { formatted: 'N/A', badgeColor: 'bg-gray-200 text-gray-600', textColor: 'text-gray-500' };
-            const today = new Date(); today.setHours(0, 0, 0, 0);
-            const dueDate = new Date(dueDateString); dueDate.setHours(0, 0, 0, 0);
-            const timeDiff = dueDate.getTime() - today.getTime();
-            const dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
-            const formatted = new Date(dueDateString + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            if (dayDiff < 0) return { formatted, badgeColor: 'bg-red-100 text-red-800', textColor: 'text-red-600' };
-            if (dayDiff <= 3) return { formatted, badgeColor: 'bg-yellow-100 text-yellow-800', textColor: 'text-yellow-600' };
-            return { formatted, badgeColor: 'bg-gray-200 text-gray-600', textColor: 'text-gray-500' };
-        }
-
-        // --- Modals and Forms ---
-        function openModal(modalEl) { modalEl.style.display = 'block'; modalBackdrop.style.display = 'block'; }
-        function closeModal() { allModals.forEach(m => m.style.display = 'none'); modalBackdrop.style.display = 'none'; }
-        
-        function openDeliverableModal(d = null) {
-            const form = document.getElementById('deliverable-form');
-            form.reset();
-            populatePocDropdown();
-            if (d) {
-                document.getElementById('modal-title').textContent = 'Edit Deliverable';
-                document.getElementById('deliverable-id').value = d.id;
-                document.getElementById('deliverable-name').value = d.name;
-                document.getElementById('sponsor-name').value = d.sponsor;
-                document.getElementById('poc-select').value = d.pocId;
-                document.getElementById('due-date').value = d.dueDate;
-                document.getElementById('status').value = d.status;
-                document.getElementById('notes').value = d.notes;
-            } else {
-                document.getElementById('modal-title').textContent = 'Add New Deliverable';
-                document.getElementById('deliverable-id').value = '';
+                const contentType = response.headers.get("content-type") || '';
+                if (contentType.includes("application/json")) return response.json();
+                return null;
             }
-            openModal(document.getElementById('deliverable-modal'));
-        }
 
-        function populatePocDropdown() {
-            const pocSelect = document.getElementById('poc-select');
-            pocSelect.innerHTML = '<option value="">-- Select a POC --</option>';
-            teamMembers.forEach(m => pocSelect.innerHTML += `<option value="${m.id}">${m.name}</option>`);
-        }
-        
-        function renderTeamList() {
-            const listEl = document.getElementById('team-member-list');
-            listEl.innerHTML = teamMembers.map(m => `
-                <li class="flex justify-between items-center bg-gray-100 p-2 rounded-md">
-                    <span class="text-sm font-medium">${m.name} <span class="text-gray-500 text-xs">${m.phoneNumber || ''}</span></span>
-                    ${currentUser.is_superuser ? `<button data-id="${m.id}" class="delete-member-btn text-xs text-red-500">Remove</button>` : ''}
-                </li>
-            `).join('');
-            if (currentUser.is_superuser) {
-                document.querySelectorAll('.delete-member-btn').forEach(btn => btn.addEventListener('click', async (e) => {
-                    try {
-                        await apiFetch(`/api/team/${e.target.dataset.id}`, { method: 'DELETE', headers: { 'Authorization': 'superuser' } });
-                        main();
-                    } catch (error) {
-                        alert(error.message);
+            // Check session on load -- backend should expose /check_session (returns { authenticated: true, username, is_superuser })
+            async function checkSession() {
+                try {
+                    const res = await apiFetch('/check_session');
+                    currentUser.username = res.username || currentUser.username;
+                    currentUser.is_superuser = res.is_superuser || false;
+                    // show app
+                    document.getElementById('login-overlay').style.display = 'none';
+                    document.getElementById('app-container').classList.remove('hidden');
+                    // show admin-only buttons if superuser
+                    document.getElementById('send-reminders-btn').classList.toggle('hidden', !currentUser.is_superuser);
+                    main();
+                } catch (err) {
+                    // not authenticated -> show login
+                    document.getElementById('login-overlay').style.display = 'flex';
+                    document.getElementById('app-container').classList.add('hidden');
+                }
+            }
+
+            async function main() {
+                try {
+                    await Promise.all([
+                        fetchDeliverables(),
+                        fetchTeam(),
+                        fetchReminders(),
+                        fetchAnalytics()
+                    ]);
+                    if (currentUser.is_superuser) {
+                        await fetchPendingUsers();
+                    }
+                    populateFilters();
+                    render();
+                    updateUIAccess();
+                } catch (error) {
+                    console.error("Failed to load initial data:", error);
+                    // Show login overlay instead of aggressive reload
+                    alert("Session may have expired or there was a network error. Please log in again.");
+                    document.getElementById('login-overlay').style.display = 'flex';
+                    document.getElementById('app-container').classList.add('hidden');
+                }
+            }
+
+            async function fetchDeliverables() { allDeliverables = await apiFetch('/api/deliverables') || []; }
+            async function fetchTeam() { teamMembers = await apiFetch('/api/team') || []; }
+            async function fetchReminders() {
+                const reminders = await apiFetch('/api/reminders') || [];
+                renderReminders(reminders);
+            }
+            async function fetchAnalytics() {
+                try {
+                    const analytics = await apiFetch('/api/analytics') || { status_distribution: {}, sponsor_distribution: {} };
+                    renderAnalytics(analytics);
+                } catch(e) {
+                    console.warn('Analytics fetch failed:', e);
+                }
+            }
+            async function fetchActivityLog() {
+                const logs = await apiFetch('/api/activity') || [];
+                renderActivityLog(logs);
+            }
+            async function fetchPendingUsers() {
+                const pending = await apiFetch('/api/pending-users') || [];
+                renderPendingUsers(pending);
+            }
+
+            function render() {
+                const searchTerm = (document.getElementById('search-input')?.value || '').toLowerCase();
+                const selectedPoc = document.getElementById('poc-filter')?.value;
+                const selectedSponsor = document.getElementById('sponsor-filter')?.value;
+
+                let filteredDeliverables = allDeliverables.filter(d => {
+                    const matchesSearch = (d.name || '').toLowerCase().includes(searchTerm) || (d.sponsor || '').toLowerCase().includes(searchTerm);
+                    const matchesPoc = !selectedPoc || String(d.pocId) === String(selectedPoc);
+                    const matchesSponsor = !selectedSponsor || d.sponsor === selectedSponsor;
+                    return matchesSearch && matchesPoc && matchesSponsor;
+                });
+
+                renderBoardView(filteredDeliverables);
+                renderListView(filteredDeliverables);
+            }
+
+            function renderReminders(reminders) {
+                const reminderSection = document.getElementById('reminder-section');
+                const reminderList = document.getElementById('reminder-list');
+                if (!Array.isArray(reminders) || reminders.length === 0) {
+                    reminderSection.classList.add('hidden');
+                    return;
+                }
+                reminderSection.classList.remove('hidden');
+                reminderList.innerHTML = reminders.map(r => `<li><strong>${r.name}</strong> for ${r.sponsor} is due ${new Date(r.dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}. (POC: ${r.pocName})</li>`).join('');
+            }
+
+            function renderBoardView(deliverables) {
+                const boardView = document.getElementById('board-view');
+                boardView.innerHTML = '';
+                KANBAN_STATUSES.forEach(status => {
+                    const column = document.createElement('div');
+                    column.className = 'bg-gray-100 rounded-lg p-4';
+                    column.dataset.status = status;
+                    const statusColor = {'To-Do': 'bg-blue-500', 'In Progress': 'bg-yellow-500', 'Pending Approval': 'bg-purple-500', 'Done': 'bg-green-500'}[status];
+                    column.innerHTML = `<h3 class="font-bold text-lg mb-4 flex items-center"><span class="w-3 h-3 rounded-full ${statusColor} mr-2"></span>${status}</h3><div class="space-y-4 kanban-column" id="column-${status.replace(/\s+/g, '-')}"></div>`;
+                    boardView.appendChild(column);
+                    ['dragover', 'dragenter'].forEach(evt => column.addEventListener(evt, e => { e.preventDefault(); column.classList.add('bg-gray-200'); }));
+                    column.addEventListener('dragleave', () => column.classList.remove('bg-gray-200'));
+                    column.addEventListener('drop', handleDrop);
+                });
+                deliverables.forEach(d => {
+                    const columnContent = document.getElementById(`column-${(d.status || '').replace(/\s+/g, '-')}`);
+                    if (columnContent) columnContent.appendChild(createDeliverableCard(d));
+                });
+            }
+
+            function createDeliverableCard(d) {
+                const card = document.createElement('div');
+                card.className = 'bg-white p-4 rounded-lg shadow-sm cursor-grab active:cursor-grabbing';
+                card.draggable = true;
+                card.dataset.id = d.id;
+                const dueDateInfo = getDueDateInfo(d.dueDate);
+                card.innerHTML = `<h4 class="font-bold text-md">${d.name}</h4><p class="text-sm text-gray-500 mb-2">${d.sponsor}</p><div class="flex justify-between items-center text-xs mt-3"><span class="font-semibold ${dueDateInfo.textColor}">${dueDateInfo.formatted}</span><span class="font-medium bg-gray-100 px-2 py-1 rounded-full">${d.pocName || 'N/A'}</span></div>`;
+                card.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', e.target.dataset.id));
+                card.addEventListener('click', () => openDeliverableModal(d));
+                return card;
+            }
+
+            function renderListView(deliverables) {
+                const listViewBody = document.getElementById('list-view-body');
+                listViewBody.innerHTML = '';
+                if (!deliverables || deliverables.length === 0) {
+                    listViewBody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-500">No deliverables match your filters.</td></tr>`;
+                    return;
+                }
+                deliverables.forEach(d => {
+                    const row = document.createElement('tr');
+                    const dueDateInfo = getDueDateInfo(d.dueDate);
+                    row.innerHTML = `<td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-semibold text-gray-900">${d.name}</div></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${d.sponsor}</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${d.pocName || 'N/A'}</td><td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${dueDateInfo.badgeColor}">${dueDateInfo.formatted}</span></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${d.status}</td><td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><button class="text-red-600 hover:text-red-900 delete-btn" data-id="${d.id}">Delete</button></td>`;
+                    listViewBody.appendChild(row);
+                });
+                document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    if (confirm('Are you sure?')) {
+                        try {
+                            await apiFetch(`/api/deliverables/${e.target.dataset.id}`, { method: 'DELETE' });
+                            main();
+                        } catch (error) {
+                            alert(error.message);
+                        }
                     }
                 }));
             }
-        }
-        
-        function updateUIAccess() {
-            const teamForm = document.getElementById('team-form');
-            const sendRemindersBtn = document.getElementById('send-reminders-btn');
-            
-            if (currentUser.is_superuser) {
-                teamForm.style.display = 'block';
-                sendRemindersBtn.style.display = 'block';
-            } else {
-                teamForm.style.display = 'none';
-                sendRemindersBtn.style.display = 'none';
+
+            function getDueDateInfo(dueDateString) {
+                if (!dueDateString) return { formatted: 'N/A', badgeColor: 'bg-gray-200 text-gray-600', textColor: 'text-gray-500' };
+                const today = new Date(); today.setHours(0, 0, 0, 0);
+                const dueDate = new Date(dueDateString); dueDate.setHours(0, 0, 0, 0);
+                const timeDiff = dueDate.getTime() - today.getTime();
+                const dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+                const formatted = new Date(dueDateString + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                if (dayDiff < 0) return { formatted, badgeColor: 'bg-red-100 text-red-800', textColor: 'text-red-600' };
+                if (dayDiff <= 3) return { formatted, badgeColor: 'bg-yellow-100 text-yellow-800', textColor: 'text-yellow-600' };
+                return { formatted, badgeColor: 'bg-gray-200 text-gray-600', textColor: 'text-gray-500' };
             }
 
-            document.getElementById('user-display').textContent = `Logged in as: ${currentUser.username} ${currentUser.is_superuser ? '(Admin)' : ''}`;
-            renderTeamList();
-        }
+            function openModal(modalEl) { modalEl.style.display = 'block'; modalBackdrop.style.display = 'block'; }
+            function closeModal() { allModals.forEach(m => m.style.display = 'none'); modalBackdrop.style.display = 'none'; }
 
-        // --- Event Listeners ---
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            try {
-                const data = await apiFetch('/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-                currentUser = data;
-                document.getElementById('login-overlay').style.display = 'none';
-                document.getElementById('app-container').classList.remove('hidden');
-                main();
-            } catch (error) {
-                document.getElementById('login-error').classList.remove('hidden');
+            function openDeliverableModal(d = null) {
+                const form = document.getElementById('deliverable-form');
+                form.reset();
+                populatePocDropdown();
+                document.getElementById('modal-title').textContent = d ? 'Edit Deliverable' : 'Add New Deliverable';
+                if (d) {
+                    document.getElementById('deliverable-id').value = d.id;
+                    document.getElementById('deliverable-name').value = d.name;
+                    document.getElementById('sponsor-name').value = d.sponsor;
+                    document.getElementById('poc-select').value = d.pocId;
+                    document.getElementById('due-date').value = d.dueDate;
+                    document.getElementById('status').value = d.status;
+                    document.getElementById('notes').value = d.notes;
+                } else {
+                    document.getElementById('deliverable-id').value = '';
+                }
+                openModal(document.getElementById('deliverable-modal'));
             }
-        });
-        
-        document.getElementById('deliverable-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('deliverable-id').value;
-            const body = {
-                name: document.getElementById('deliverable-name').value,
-                sponsor: document.getElementById('sponsor-name').value,
-                pocId: parseInt(document.getElementById('poc-select').value),
-                dueDate: document.getElementById('due-date').value,
-                status: document.getElementById('status').value,
-                notes: document.getElementById('notes').value,
-            };
-            const method = id ? 'PUT' : 'POST';
-            const endpoint = id ? `/api/deliverables/${id}` : '/api/deliverables';
-            try {
-                await apiFetch(endpoint, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-                closeModal();
-                main();
-            } catch (error) {
-                alert(error.message);
-            }
-        });
 
-        document.getElementById('team-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('new-member-name').value;
-            const phone = document.getElementById('new-member-phone').value;
-            if (name) {
+            function populatePocDropdown() {
+                const pocSelect = document.getElementById('poc-select');
+                pocSelect.innerHTML = '<option value="">-- Select a POC --</option>';
+                teamMembers.forEach(m => pocSelect.innerHTML += `<option value="${m.id}">${m.name}</option>`);
+            }
+
+            // --- Correct ---
+            function renderTeamList() {
+                const listEl = document.getElementById('team-member-list');
+                listEl.innerHTML = teamMembers.map(m => `
+                    <li class="flex justify-between items-center bg-gray-100 p-2 rounded-md">
+                        <span class="text-sm font-medium">${m.name} <span class="text-gray-500 text-xs">${m.phoneNumber || ''}</span></span>
+                        ${currentUser.is_superuser ? `
+                            <div class="space-x-2">
+                                <button data-id="${m.id}" class="edit-member-btn text-xs text-blue-500">Edit</button>
+                                <button data-id="${m.id}" class="delete-member-btn text-xs text-red-500">Remove</button>
+                            </div>
+                        ` : ''}
+                    </li>
+                `).join('');
+
+                if (currentUser.is_superuser) {
+                    // Add listeners for the new Edit buttons
+                    document.querySelectorAll('.edit-member-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                        openTeamModalForEdit(parseInt(e.target.dataset.id));
+                    }));
+
+                    document.querySelectorAll('.delete-member-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+                        try {
+                            await apiFetch(`/api/team/${e.target.dataset.id}`, { method: 'DELETE' });
+                            main();
+                        } catch (error) {
+                            alert(error.message);
+                        }
+                    }));
+                }
+            }
+
+            function updateUIAccess() {
+                document.getElementById('team-form').classList.toggle('hidden', !currentUser.is_superuser);
+                document.getElementById('admin-panel').classList.toggle('hidden', !currentUser.is_superuser);
+                document.getElementById('user-display').textContent = `Logged in as: ${currentUser.username} ${currentUser.is_superuser ? '(Admin)' : ''}`;
+                // show/hide send reminders button
+                document.getElementById('send-reminders-btn').classList.toggle('hidden', !currentUser.is_superuser);
+                renderTeamList();
+            }
+
+            function populateFilters() {
+                const pocFilter = document.getElementById('poc-filter');
+                pocFilter.innerHTML = '<option value="">All POCs</option>';
+                teamMembers.forEach(m => pocFilter.innerHTML += `<option value="${m.id}">${m.name}</option>`);
+
+                const sponsorFilter = document.getElementById('sponsor-filter');
+                const sponsors = [...new Set(allDeliverables.map(d => d.sponsor))];
+                sponsorFilter.innerHTML = '<option value="">All Sponsors</option>';
+                sponsors.sort().forEach(s => sponsorFilter.innerHTML += `<option value="${s}">${s}</option>`);
+            }
+
+            function renderAnalytics(analytics) {
                 try {
-                    await apiFetch('/api/team', {
+                    const statusCtx = document.getElementById('status-chart').getContext('2d');
+                    if (statusChart) statusChart.destroy();
+                    statusChart = new Chart(statusCtx, {
+                        type: 'doughnut',
+                        data: { labels: Object.keys(analytics.status_distribution || {}), datasets: [{ data: Object.values(analytics.status_distribution || {}), backgroundColor: ['#3B82F6', '#F59E0B', '#8B5CF6', '#10B981'] }] },
+                        options: { responsive: true }
+                    });
+
+                    const sponsorCtx = document.getElementById('sponsor-chart').getContext('2d');
+                    if (sponsorChart) sponsorChart.destroy();
+                    sponsorChart = new Chart(sponsorCtx, {
+                        type: 'bar',
+                        data: { labels: Object.keys(analytics.sponsor_distribution || {}), datasets: [{ label: '# of Deliverables', data: Object.values(analytics.sponsor_distribution || {}), backgroundColor: '#EF4444' }] },
+                        options: { responsive: true, indexAxis: 'y' }
+                    });
+                } catch (e) {
+                    console.warn('Failed to render analytics:', e);
+                }
+            }
+
+            // --- Inside the <script> tag in index.html ---
+
+           // --- In index.html, inside the <script> tag ---
+            function renderActivityLog(logs) {
+                const logList = document.getElementById('activity-log-list');
+                if (logList) {
+                    logList.innerHTML = logs.map(log => {
+                        const date = new Date(log.timestamp + 'Z');
+                        const formattedDate = date.toLocaleString('en-IN', {
+                            timeZone: 'Asia/Kolkata',
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit'
+                        });
+                        // The log.description from the backend now includes the username
+                        return `<li class="text-sm"><span class="font-semibold text-gray-500">${formattedDate}</span> - ${log.description}</li>`;
+                    }).join('');
+                }
+            }
+
+            function renderPendingUsers(pending) {
+                const list = document.getElementById('pending-users-list');
+                if (!Array.isArray(pending) || pending.length === 0) {
+                    list.innerHTML = '<li>No pending requests.</li>';
+                    return;
+                }
+                list.innerHTML = pending.map(u => `
+                    <li class="flex justify-between items-center">
+                        <span>${u.username}</span>
+                        <div>
+                            <button data-id="${u.id}" class="approve-btn text-xs bg-green-500 text-white px-2 py-1 rounded">Approve</button>
+                            <button data-id="${u.id}" class="deny-btn text-xs bg-red-500 text-white px-2 py-1 rounded">Deny</button>
+                        </div>
+                    </li>
+                `).join('');
+
+                document.querySelectorAll('.approve-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+                    await apiFetch(`/api/approve-user/${e.target.dataset.id}`, { method: 'POST' });
+                    main();
+                }));
+                document.querySelectorAll('.deny-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+                    await apiFetch(`/api/deny-user/${e.target.dataset.id}`, { method: 'POST' });
+                    main();
+                }));
+            }
+
+            // This function prepares the team modal for editing an existing member.
+            function openTeamModalForEdit(memberId) {
+                // 1. Find the specific member in our `teamMembers` array using their ID.
+                const member = teamMembers.find(m => m.id === memberId);
+                if (!member) return; // Safety check
+
+                // 2. Fill the form fields with the member's data.
+                document.getElementById('team-member-id').value = member.id; // IMPORTANT: Store the ID in the hidden input
+                document.getElementById('new-member-name').value = member.name;
+                document.getElementById('new-member-phone').value = member.phoneNumber || '';
+
+                // 3. Update the UI to reflect "Edit Mode".
+                document.getElementById('team-form-label').textContent = 'Edit Team Member';
+                document.getElementById('team-submit-btn').textContent = 'Save Changes';
+
+                // 4. Finally, open the modal.
+                openModal(document.getElementById('team-modal'));
+            }
+
+            // This function prepares the team modal for adding a new member.
+            function openTeamModalForAdd() {
+                // 1. Reset all form fields to be blank.
+                document.getElementById('team-form').reset();
+
+                // 2. Make sure the hidden ID field is empty. This is how our submit logic knows we are creating, not updating.
+                document.getElementById('team-member-id').value = '';
+
+                // 3. Update the UI to reflect "Add Mode".
+                document.getElementById('team-form-label').textContent = 'Add New Member';
+                document.getElementById('team-submit-btn').textContent = 'Add';
+
+                // 4. Finally, open the modal.
+                openModal(document.getElementById('team-modal'));
+            }
+
+            // --- Event Listeners ---
+            document.getElementById('login-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                const errorEl = document.getElementById('login-error');
+                errorEl.classList.add('hidden');
+                try {
+                    const data = await apiFetch('/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name, phoneNumber: phone, is_superuser: currentUser.is_superuser })
+                        body: JSON.stringify({ username, password })
                     });
+                    // backend may return user info or just message — try to be flexible
+                    if (data.username) {
+                        currentUser.username = data.username;
+                        currentUser.is_superuser = !!data.is_superuser;
+                        document.getElementById('login-overlay').style.display = 'none';
+                        document.getElementById('app-container').classList.remove('hidden');
+                        document.getElementById('send-reminders-btn').classList.toggle('hidden', !currentUser.is_superuser);
+                        main();
+                    } else {
+                        // fallback: check session endpoint to pull user info
+                        await checkSession();
+                    }
+                } catch (error) {
+                    errorEl.textContent = error.message;
+                    errorEl.classList.remove('hidden');
+                }
+            });
+
+            // In index.html, inside the <script> tag
+            document.getElementById('register-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const username = document.getElementById('register-username').value;
+                const password = document.getElementById('register-password').value;
+                const name = document.getElementById('register-name').value; // Get the name
+                const phone = document.getElementById('register-phone').value; // Get the phone number
+
+                const errorEl = document.getElementById('register-error');
+                const successEl = document.getElementById('register-success');
+                errorEl.classList.add('hidden');
+                successEl.classList.add('hidden');
+                try {
+                    const data = await apiFetch('/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        // Add name and phoneNumber to the body
+                        body: JSON.stringify({ username, password, name, phoneNumber: phone })
+                    });
+                    successEl.textContent = data.message || 'Registration successful. Waiting for admin approval.';
+                    successEl.classList.remove('hidden');
                     e.target.reset();
+                } catch (error) {
+                    errorEl.textContent = error.message;
+                    errorEl.classList.remove('hidden');
+                }
+            });
+
+            document.getElementById('logout-btn').addEventListener('click', async () => {
+                try {
+                    await apiFetch('/logout', { method: 'POST' });
+                } catch(e) { /* ignore */ }
+                // reset UI
+                currentUser = { username: null, is_superuser: false };
+                document.getElementById('login-overlay').style.display = 'flex';
+                document.getElementById('app-container').classList.add('hidden');
+                location.reload();
+            });
+
+            document.getElementById('deliverable-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('deliverable-id').value;
+                const body = {
+                    name: document.getElementById('deliverable-name').value,
+                    sponsor: document.getElementById('sponsor-name').value,
+                    pocId: parseInt(document.getElementById('poc-select').value),
+                    dueDate: document.getElementById('due-date').value,
+                    status: document.getElementById('status').value,
+                    notes: document.getElementById('notes').value,
+                };
+                const method = id ? 'PUT' : 'POST';
+                const endpoint = id ? `/api/deliverables/${id}` : '/api/deliverables';
+                try {
+                    await apiFetch(endpoint, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                    closeModal();
                     main();
                 } catch (error) {
                     alert(error.message);
                 }
-            }
-        });
-        
-        document.getElementById('send-reminders-btn').addEventListener('click', async () => {
-            const response = await apiFetch('/api/trigger-reminders', { method: 'POST' });
-            alert(response.message);
-        });
+            });
 
-        async function handleDrop(e) { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); const status = e.currentTarget.dataset.status; try { await apiFetch(`/api/deliverables/status/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) }); main(); } catch(error) { alert(error.message); } }
-        document.getElementById('add-deliverable-btn').addEventListener('click', () => openDeliverableModal());
-        document.getElementById('manage-team-btn').addEventListener('click', () => openModal(document.getElementById('team-modal')));
-        document.querySelectorAll('.cancel-btn').forEach(btn => btn.addEventListener('click', closeModal));
-        modalBackdrop.addEventListener('click', closeModal);
-        // View switcher logic...
-        document.getElementById('board-view-btn').addEventListener('click', (e) => { document.getElementById('board-view').classList.remove('hidden'); document.getElementById('list-view').classList.add('hidden'); e.target.classList.add('bg-white', 'shadow'); document.getElementById('list-view-btn').classList.remove('bg-white', 'shadow'); });
-        document.getElementById('list-view-btn').addEventListener('click', (e) => { document.getElementById('board-view').classList.add('hidden'); document.getElementById('list-view').classList.remove('hidden'); e.target.classList.add('bg-white', 'shadow'); document.getElementById('board-view-btn').classList.remove('bg-white', 'shadow'); });
+           // --- In index.html, inside the <script> tag ---
 
+            // Replace your old 'team-form' listener with this one.
+            document.getElementById('team-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                // This logic now checks if we are editing or adding
+                const id = document.getElementById('team-member-id').value;
+                const name = document.getElementById('new-member-name').value;
+                const phone = document.getElementById('new-member-phone').value;
+
+                if (!name) return; // Simple validation
+
+                // Dynamically choose the method and endpoint
+                const method = id ? 'PUT' : 'POST';
+                const endpoint = id ? `/api/team/${id}` : '/api/team';
+
+                try {
+                    await apiFetch(endpoint, {
+                        method: method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, phoneNumber: phone })
+                    });
+                    e.target.reset();
+                    closeModal(); // Close the modal on success
+                    main(); // Refresh the main view
+                } catch (error) {
+                    alert(error.message);
+                }
+            });
+
+            document.getElementById('send-reminders-btn').addEventListener('click', async () => {
+                try {
+                    const reminders = await apiFetch('/api/trigger-reminders', { method: 'POST' });
+                    if (!Array.isArray(reminders) || reminders.length === 0) {
+                        alert('No reminders to send for upcoming deliverables.');
+                        return;
+                    }
+                    reminders.forEach(r => {
+                        const url = `whatsapp://send?phone=${r.phoneNumber}&text=${encodeURIComponent(r.message)}`;
+                        window.open(url, '_blank');
+                    });
+                } catch (error) {
+                    alert(error.message);
+                }
+            });
+
+           // In index.html, inside the <script> tag
+            document.getElementById('activity-log-btn').addEventListener('click', async () => {
+                await fetchActivityLog();
+                openModal(document.getElementById('activity-log-modal'));
+            });
+
+            ['search-input', 'poc-filter', 'sponsor-filter'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('input', render);
+            });
+
+            document.getElementById('clear-filters-btn').addEventListener('click', () => {
+                document.getElementById('search-input').value = '';
+                document.getElementById('poc-filter').value = '';
+                document.getElementById('sponsor-filter').value = '';
+                render();
+            });
+
+            document.getElementById('show-register-link').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('login-form').classList.add('hidden'); document.getElementById('register-form').classList.remove('hidden'); });
+
+            document.getElementById('show-login-link').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('register-form').classList.add('hidden'); document.getElementById('login-form').classList.remove('hidden'); });
+
+            async function handleDrop(e) { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); const status = e.currentTarget.dataset.status; try { await apiFetch(`/api/deliverables/status/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) }); main(); } catch(error) { alert(error.message); } }
+            document.getElementById('add-deliverable-btn').addEventListener('click', () => openDeliverableModal());
+            document.getElementById('manage-team-btn').addEventListener('click', openTeamModalForAdd);
+            document.querySelectorAll('.cancel-btn').forEach(btn => btn.addEventListener('click', closeModal));
+            modalBackdrop.addEventListener('click', closeModal);
+            document.getElementById('board-view-btn').addEventListener('click', (e) => { document.getElementById('board-view').classList.remove('hidden'); document.getElementById('list-view').classList.add('hidden'); e.target.classList.add('bg-white', 'shadow'); document.getElementById('list-view-btn').classList.remove('bg-white', 'shadow'); });
+            document.getElementById('list-view-btn').addEventListener('click', (e) => { document.getElementById('board-view').classList.add('hidden'); document.getElementById('list-view').classList.remove('hidden'); e.target.classList.add('bg-white', 'shadow'); document.getElementById('board-view-btn').classList.remove('bg-white', 'shadow'); });
+
+            // Initial check
+            checkSession();
+        });
     </script>
 </body>
 </html>
