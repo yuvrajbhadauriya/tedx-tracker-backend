@@ -158,6 +158,36 @@ def check_session():
         return jsonify({'authenticated': True, 'username': current_user.username, 'is_superuser': current_user.is_superuser}), 200
     return jsonify({'authenticated': False}), 401
 
+# --- In app.py, add this entire function ---
+
+@app.route('/api/user/settings', methods=['POST'])
+@login_required
+def update_user_settings():
+    data = request.get_json() or {}
+    current_password = data.get('current_password')
+    new_username = (data.get('new_username') or '').strip()
+    new_password = data.get('new_password')
+
+    # User must provide their current password to make any changes
+    if not current_user.check_password(current_password):
+        return jsonify({'message': 'Incorrect current password.'}), 403
+
+    # --- Update Username ---
+    if new_username and new_username != current_user.username:
+        # Check if the new username is already taken
+        if User.query.filter(User.username == new_username).first():
+            return jsonify({'message': 'That username is already taken.'}), 409
+        log_activity(f"User '{current_user.username}' changed their username to '{new_username}'.")
+        current_user.username = new_username
+
+    # --- Update Password ---
+    if new_password:
+        current_user.set_password(new_password)
+        log_activity(f"User '{current_user.username}' changed their password.")
+
+    db.session.commit()
+    return jsonify({'message': 'Settings updated successfully.'})
+
 # --- Admin: Pending users ---
 @app.route('/api/pending-users', methods=['GET'])
 @superuser_required

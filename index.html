@@ -81,8 +81,10 @@
             <div>
                 <h1 class="text-3xl font-bold text-red-600">TEDxVIPS</h1>
                 <h2 class="text-xl font-medium text-gray-600">Sponsor Deliverable Tracker</h2>
-                <div class="flex items-center gap-4 mt-2">
+               <div class="flex items-center gap-4 mt-2">
                     <p id="user-display" class="text-sm text-gray-500"></p>
+                    <!-- Add this new button -->
+                    <button id="settings-btn" class="text-xs text-blue-500 hover:underline">Settings</button>
                     <button id="logout-btn" class="text-xs text-red-500 hover:underline">Logout</button>
                 </div>
             </div>
@@ -242,6 +244,33 @@
         <div class="flex justify-end mt-8">
             <button type="button" class="cancel-btn px-4 py-2 bg-gray-200 rounded-lg">Close</button>
         </div>
+    </div>
+    <!-- In index.html, add this entire modal -->
+    <div id="settings-modal" class="modal w-11/12 md:max-w-md bg-white rounded-lg shadow-2xl p-6">
+        <h3 class="text-2xl font-bold mb-6">Account Settings</h3>
+        <form id="settings-form">
+            <div class="mb-4">
+                <label for="new-username" class="block text-sm font-medium text-gray-700">New Username</label>
+                <input type="text" id="new-username" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                <p class="text-xs text-gray-500 mt-1">Leave blank to keep current username.</p>
+            </div>
+            <div class="mb-4">
+                <label for="new-password" class="block text-sm font-medium text-gray-700">New Password</label>
+                <input type="password" id="new-password" class="mt-1 block w-full px-3 py-2 border rounded-md">
+                <p class="text-xs text-gray-500 mt-1">Leave blank to keep current password.</p>
+            </div>
+            <hr class="my-6">
+            <div class="mb-4">
+                <label for="current-password" class="block text-sm font-medium text-gray-700">Current Password</label>
+                <input type="password" id="current-password" class="mt-1 block w-full px-3 py-2 border rounded-md" required>
+                <p class="text-xs text-gray-500 mt-1">Required to save any changes.</p>
+            </div>
+            <p id="settings-error" class="text-sm text-red-600 mb-4 hidden"></p>
+            <div class="flex justify-end space-x-4 mt-8">
+                <button type="button" class="cancel-btn px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-red-600 text-white font-bold rounded-lg">Save Changes</button>
+            </div>
+        </form>
     </div>
 
     <script>
@@ -789,6 +818,51 @@
             document.getElementById('board-view-btn').addEventListener('click', (e) => { document.getElementById('board-view').classList.remove('hidden'); document.getElementById('list-view').classList.add('hidden'); e.target.classList.add('bg-white', 'shadow'); document.getElementById('list-view-btn').classList.remove('bg-white', 'shadow'); });
             document.getElementById('list-view-btn').addEventListener('click', (e) => { document.getElementById('board-view').classList.add('hidden'); document.getElementById('list-view').classList.remove('hidden'); e.target.classList.add('bg-white', 'shadow'); document.getElementById('board-view-btn').classList.remove('bg-white', 'shadow'); });
 
+
+            // --- Settings Modal Logic ---
+            document.getElementById('settings-btn').addEventListener('click', () => {
+                document.getElementById('settings-form').reset();
+                document.getElementById('settings-error').classList.add('hidden');
+                openModal(document.getElementById('settings-modal'));
+            });
+
+            document.getElementById('settings-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const errorEl = document.getElementById('settings-error');
+                errorEl.classList.add('hidden');
+
+                const body = {
+                    new_username: document.getElementById('new-username').value,
+                    new_password: document.getElementById('new-password').value,
+                    current_password: document.getElementById('current-password').value
+                };
+
+                // Don't submit if no changes are being made
+                if (!body.new_username && !body.new_password) {
+                    errorEl.textContent = 'Please provide a new username or password.';
+                    errorEl.classList.remove('hidden');
+                    return;
+                }
+
+                try {
+                    const data = await apiFetch('/api/user/settings', {
+                        method: 'POST',
+                        body: JSON.stringify(body)
+                    });
+                    alert(data.message); // Simple success message
+                    closeModal();
+                    // Force a logout if password was changed, for security
+                    if (body.new_password) {
+                        document.getElementById('logout-btn').click();
+                    } else {
+                        // Otherwise, just refresh the user display
+                        await checkSession();
+                    }
+                } catch (error) {
+                    errorEl.textContent = error.message;
+                    errorEl.classList.remove('hidden');
+                }
+            });
             // Initial check
             checkSession();
         });
