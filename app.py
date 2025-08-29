@@ -8,23 +8,29 @@ from datetime import datetime, timedelta
 import os
 
 # --- App setup ---
-app = Flask(__name__, static_folder='.', static_url_path='')
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-this-secret')
-
-# SQLite DB in the same directory
+# DEFINE PATHS FIRST
 basedir = os.path.abspath(os.path.dirname(__file__))
-# In app.py
+instance_path = os.path.join(basedir, 'instance')
+os.makedirs(instance_path, exist_ok=True)
+
+# NOW INITIALIZE THE APP
+app = Flask(__name__, static_folder='.', static_url_path='', instance_path=instance_path)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a-very-secret-key')
+
+# NOW CONFIGURE THE DATABASE
 # Use the Render PostgreSQL database URL if available, otherwise fall back to SQLite for local dev
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///' + os.path.join(instance_path, 'sponsors.db'))
+database_uri = os.environ.get('DATABASE_URL')
+if database_uri and database_uri.startswith("postgres://"):
+    database_uri = database_uri.replace("postgres://", "postgresql://", 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_uri or 'sqlite:///' + os.path.join(instance_path, 'sponsors.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Make cookies work when frontend is served from same-origin or a dev server
+# Configure cookies for local development
 app.config.update(
-   
-    SESSION_COOKIE_SECURE=False       # set True if you use HTTPS
+    SESSION_COOKIE_SECURE=False
 )
 
-# Allow credentials and common dev origins — add other origins you use (e.g. 5500)
 CORS(app, supports_credentials=True, origins=[
     'http://127.0.0.1:5000',
     'http://localhost:5000',
@@ -41,7 +47,6 @@ login_manager.init_app(app)
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    # Add these two lines
     name = db.Column(db.String(100), nullable=False)
     phone_number = db.Column(db.String(40), nullable=True)
     password_hash = db.Column(db.String(256), nullable=False)
@@ -65,7 +70,7 @@ class Deliverable(db.Model):
     sponsor = db.Column(db.String(100), nullable=False)
     poc_id = db.Column(db.Integer, db.ForeignKey('team_member.id'), nullable=False)
     poc = db.relationship('TeamMember', backref=db.backref('deliverables', lazy=True))
-    due_date = db.Column(db.String(20), nullable=False)  # store as YYYY-MM-DD
+    due_date = db.Column(db.String(20), nullable=False)
     status = db.Column(db.String(50), nullable=False)
     notes = db.Column(db.Text, nullable=True)
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
@@ -119,7 +124,7 @@ def register():
         return jsonify({'message': 'Username, name, and password are required.'}), 400
     if User.query.filter_by(username=username).first():
         return jsonify({'message': 'Username already exists.'}), 409
-
+    
     new_user = User(
         username=username, 
         name=name, 
@@ -160,8 +165,6 @@ def check_session():
         return jsonify({'authenticated': True, 'username': current_user.username, 'is_superuser': current_user.is_superuser}), 200
     return jsonify({'authenticated': False}), 401
 
-# --- In app.py, add this entire function ---
-
 @app.route('/api/user/settings', methods=['POST'])
 @login_required
 def update_user_settings():
@@ -170,19 +173,15 @@ def update_user_settings():
     new_username = (data.get('new_username') or '').strip()
     new_password = data.get('new_password')
 
-    # User must provide their current password to make any changes
     if not current_user.check_password(current_password):
         return jsonify({'message': 'Incorrect current password.'}), 403
 
-    # --- Update Username ---
     if new_username and new_username != current_user.username:
-        # Check if the new username is already taken
         if User.query.filter(User.username == new_username).first():
             return jsonify({'message': 'That username is already taken.'}), 409
         log_activity(f"User '{current_user.username}' changed their username to '{new_username}'.")
         current_user.username = new_username
 
-    # --- Update Password ---
     if new_password:
         current_user.set_password(new_password)
         log_activity(f"User '{current_user.username}' changed their password.")
@@ -202,7 +201,6 @@ def get_pending_users():
 def approve_user(user_id):
     user_to_approve = User.query.get_or_404(user_id)
     user_to_approve.is_active = True
-    # Now, create the TeamMember with the user's real name and phone number
     if not TeamMember.query.filter_by(name=user_to_approve.name).first():
         tm = TeamMember(name=user_to_approve.name, phone_number=user_to_approve.phone_number)
         db.session.add(tm)
@@ -243,17 +241,6 @@ def create_team_member():
     log_activity(f"Added team member '{name}'.")
     return jsonify({'message': 'Team member added.'}), 201
 
-@app.route('/api/team/<int:member_id>', methods=['DELETE'])
-@superuser_required
-def delete_team_member(member_id):
-    m = TeamMember.query.get_or_404(member_id)
-    db.session.delete(m)
-    db.session.commit()
-    log_activity(f"Deleted team member '{m.name}'.")
-    return jsonify({'message': 'Team member removed.'})
-
-# --- In app.py ---
-
 @app.route('/api/team/<int:member_id>', methods=['PUT'])
 @superuser_required
 def update_team_member(member_id):
@@ -265,7 +252,6 @@ def update_team_member(member_id):
     if not name:
         return jsonify({'message': 'Name required.'}), 400
 
-    # Check if another member already has the new name
     existing = TeamMember.query.filter(TeamMember.name == name, TeamMember.id != member_id).first()
     if existing:
         return jsonify({'message': 'Another team member already has this name.'}), 409
@@ -276,6 +262,15 @@ def update_team_member(member_id):
     log_activity(f"Updated team member '{m.name}'.")
     return jsonify({'message': 'Team member updated.'})
 
+@app.route('/api/team/<int:member_id>', methods=['DELETE'])
+@superuser_required
+def delete_team_member(member_id):
+    m = TeamMember.query.get_or_404(member_id)
+    db.session.delete(m)
+    db.session.commit()
+    log_activity(f"Deleted team member '{m.name}'.")
+    return jsonify({'message': 'Team member removed.'})
+
 # --- Deliverables CRUD ---
 @app.route('/api/deliverables', methods=['GET'])
 @login_required
@@ -283,14 +278,9 @@ def list_deliverables():
     items = Deliverable.query.order_by(Deliverable.due_date).all()
     def to_dict(d):
         return {
-            'id': d.id,
-            'name': d.name,
-            'sponsor': d.sponsor,
-            'pocId': d.poc_id,
-            'pocName': d.poc.name if d.poc else None,
-            'dueDate': d.due_date,
-            'status': d.status,
-            'notes': d.notes
+            'id': d.id, 'name': d.name, 'sponsor': d.sponsor,
+            'pocId': d.poc_id, 'pocName': d.poc.name if d.poc else None,
+            'dueDate': d.due_date, 'status': d.status, 'notes': d.notes
         }
     return jsonify([to_dict(d) for d in items])
 
@@ -310,7 +300,7 @@ def create_deliverable():
     )
     db.session.add(d)
     db.session.commit()
-    log_activity(f"{current_user.username} created deliverable '{d.name}' for sponsor '{d.sponsor}'.")
+    log_activity(f"Created deliverable '{d.name}' for sponsor '{d.sponsor}'.")
     return jsonify({'message': 'Deliverable created.', 'id': d.id}), 201
 
 @app.route('/api/deliverables/<int:item_id>', methods=['PUT'])
@@ -318,7 +308,6 @@ def create_deliverable():
 def update_deliverable(item_id):
     data = request.get_json() or {}
     d = Deliverable.query.get_or_404(item_id)
-    # simple edits allowed for authenticated users
     if 'name' in data: d.name = data['name']
     if 'sponsor' in data: d.sponsor = data['sponsor']
     if 'pocId' in data:
@@ -329,7 +318,7 @@ def update_deliverable(item_id):
     if 'status' in data: d.status = data['status']
     if 'notes' in data: d.notes = data['notes']
     db.session.commit()
-    log_activity(f"{current_user.username} updated deliverable '{d.name}' (id {d.id}).")
+    log_activity(f"Updated deliverable '{d.name}' (id {d.id}).")
     return jsonify({'message': 'Deliverable updated.'})
 
 @app.route('/api/deliverables/<int:item_id>', methods=['DELETE'])
@@ -338,7 +327,7 @@ def delete_deliverable(item_id):
     d = Deliverable.query.get_or_404(item_id)
     db.session.delete(d)
     db.session.commit()
-    log_activity(f"{current_user.username} deleted deliverable '{d.name}' (id {d.id}).")
+    log_activity(f"Deleted deliverable '{d.name}' (id {d.id}).")
     return jsonify({'message': 'Deliverable deleted.'})
 
 @app.route('/api/deliverables/status/<int:item_id>', methods=['PUT'])
@@ -351,7 +340,7 @@ def update_deliverable_status(item_id):
     old = d.status
     d.status = data['status']
     db.session.commit()
-    log_activity(f"{current_user.username} changed status of '{d.name}' from '{old}' to '{d.status}'.")
+    log_activity(f"Changed status of '{d.name}' from '{old}' to '{d.status}'.")
     return jsonify({'message': 'Status updated.'})
 
 # --- Reminders & Trigger ---
@@ -360,7 +349,6 @@ def update_deliverable_status(item_id):
 def get_reminders():
     today = datetime.utcnow().date()
     upcoming = []
-    # Filter out 'Done' tasks at the database level for efficiency
     deliverables_to_check = Deliverable.query.filter(Deliverable.status != 'Done').all()
     for d in deliverables_to_check:
         try:
@@ -368,7 +356,7 @@ def get_reminders():
         except Exception:
             continue
         delta = (due - today).days
-        if 0 <= delta <= 3: # <-- Now it only considers tasks that are not done
+        if 0 <= delta <= 3:
             upcoming.append({
                 'id': d.id, 'name': d.name, 'sponsor': d.sponsor,
                 'dueDate': d.due_date, 'pocName': d.poc.name if d.poc else None,
@@ -376,14 +364,12 @@ def get_reminders():
             })
     return jsonify(upcoming)
 
-#send reminder 
 @app.route('/api/trigger-reminders', methods=['POST'])
 @superuser_required
 def trigger_reminders():
     reminders = []
     today = datetime.utcnow().date()
     by_phone = {}
-    # Filter out 'Done' tasks at the database level
     deliverables_to_check = Deliverable.query.filter(Deliverable.status != 'Done').all()
     for d in deliverables_to_check:
         try:
@@ -391,7 +377,6 @@ def trigger_reminders():
         except Exception:
             continue
         delta = (due - today).days
-        # Add the status check here
         if 0 <= delta <= 3 and d.poc and d.poc.phone_number:
             phone = d.poc.phone_number
             msg = f"Reminder: '{d.name}' for sponsor {d.sponsor} is due on {d.due_date}. Please follow up with sponsor."
@@ -414,43 +399,39 @@ def analytics():
         sponsor_counts[d.sponsor] = sponsor_counts.get(d.sponsor, 0) + 1
     return jsonify({'status_distribution': status_counts, 'sponsor_distribution': sponsor_counts})
 
-# --- Activity Log (admin only) ---
+# --- Activity Log ---
 @app.route('/api/activity', methods=['GET'])
 @superuser_required
 def activity():
     logs = ActivityLog.query.order_by(ActivityLog.timestamp.desc()).limit(200).all()
     result = []
     for l in logs:
-        # Get the username from the user relationship, default to 'System' if user was deleted
         username = l.user.username if l.user else 'System'
         result.append({
             'timestamp': l.timestamp.isoformat(),
-            'description': f"({username}) {l.description}", # Prepend the username to the description
+            'description': f"({username}) {l.description}",
             'user_id': l.user_id
         })
     return jsonify(result)
 
 # --- Bootstrap DB & default admin ---
-# --- At the bottom of app.py ---
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-        # create default admin if not exists
         if not User.query.filter_by(username='admin').first():
             admin_user = User(
                 username='admin', 
-                name='Admin',  # <-- Add this line
-                phone_number='910000000000', # <-- Add this line
+                name='Admin',
+                phone_number='910000000000',
                 is_superuser=True, 
                 is_active=True
             )
             admin_user.set_password('admin123')
             db.session.add(admin_user)
-            # create team member for admin as convenience
             if not TeamMember.query.filter_by(name='Admin').first():
-                # Use the same name 'Admin' here
                 tm = TeamMember(name='Admin', phone_number='910000000000')
                 db.session.add(tm)
             db.session.commit()
             print("Created default admin -> username: 'admin' password: 'admin123'")
+    app.run(host='127.0.0.1', port=5000, debug=True)
 
