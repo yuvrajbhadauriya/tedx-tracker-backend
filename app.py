@@ -143,7 +143,7 @@ def login():
     data = request.get_json() or {}
     username = (data.get('username') or '').strip()
     password = data.get('password') or ''
-    user = User.query.filter_by(username=username).first()
+    user = User.query.filter(User.username == username).first()
     if not user or not user.check_password(password):
         return jsonify({'message': 'Invalid credentials'}), 401
     if not user.is_active:
