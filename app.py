@@ -35,7 +35,8 @@ CORS(app, supports_credentials=True, origins=[
     'http://127.0.0.1:5000',
     'http://localhost:5000',
     'http://127.0.0.1:5500',
-    'http://localhost:5500'
+    'http://localhost:5500',
+    'https://tedx-tracker-backend.onrender.com'
 ])
 
 # Extensions
@@ -82,10 +83,28 @@ class ActivityLog(db.Model):
     user = db.relationship('User')
     description = db.Column(db.String(255), nullable=False)
 
-# --- Create Database Tables ---
-# This block runs when the app is initialized, creating tables if they don't exist.
+# --- Create Database Tables & Default Admin ---
+# This block runs when the app is initialized, creating tables and the admin user if they don't exist.
 with app.app_context():
     db.create_all()
+    # Check if the admin user exists
+    if not User.query.filter_by(username='admin').first():
+        admin_user = User(
+            username='admin',
+            name='Admin',
+            phone_number='910000000000',
+            is_superuser=True,
+            is_active=True
+        )
+        admin_user.set_password('admin123')
+        db.session.add(admin_user)
+        # Also create a corresponding team member
+        if not TeamMember.query.filter_by(name='Admin').first():
+            tm = TeamMember(name='Admin', phone_number='910000000000')
+            db.session.add(tm)
+        db.session.commit()
+        print("Created default admin user.")
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -413,7 +432,7 @@ def activity():
     for l in logs:
         username = l.user.username if l.user else 'System'
         result.append({
-            'timestamp': l.timestamp.isoformat(),
+            'timestamp': l.isoformat(),
             'description': f"({username}) {l.description}",
             'user_id': l.user_id
         })
@@ -422,22 +441,9 @@ def activity():
 # --- Bootstrap DB & default admin for LOCAL development ---
 if __name__ == '__main__':
     with app.app_context():
-        # The db.create_all() from above handles table creation,
-        # but we still need to create the admin user locally.
+        # The db.create_all() and admin creation logic from above handles table creation,
+        # so this block can be kept simple for local execution.
         if not User.query.filter_by(username='admin').first():
-            admin_user = User(
-                username='admin', 
-                name='Admin',
-                phone_number='910000000000',
-                is_superuser=True, 
-                is_active=True
-            )
-            admin_user.set_password('admin123')
-            db.session.add(admin_user)
-            if not TeamMember.query.filter_by(name='Admin').first():
-                tm = TeamMember(name='Admin', phone_number='910000000000')
-                db.session.add(tm)
-            db.session.commit()
-            print("Created default admin -> username: 'admin' password: 'admin123'")
+            print("Creating default admin for local development...")
     app.run(host='127.0.0.1', port=5000, debug=True)
 
