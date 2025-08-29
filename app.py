@@ -82,6 +82,11 @@ class ActivityLog(db.Model):
     user = db.relationship('User')
     description = db.Column(db.String(255), nullable=False)
 
+# --- Create Database Tables ---
+# This block runs when the app is initialized, creating tables if they don't exist.
+with app.app_context():
+    db.create_all()
+
 @login_manager.user_loader
 def load_user(user_id):
     try:
@@ -414,10 +419,11 @@ def activity():
         })
     return jsonify(result)
 
-# --- Bootstrap DB & default admin ---
+# --- Bootstrap DB & default admin for LOCAL development ---
 if __name__ == '__main__':
     with app.app_context():
-        db.create_all()
+        # The db.create_all() from above handles table creation,
+        # but we still need to create the admin user locally.
         if not User.query.filter_by(username='admin').first():
             admin_user = User(
                 username='admin', 
