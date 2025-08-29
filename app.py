@@ -13,7 +13,9 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-this-secret')
 
 # SQLite DB in the same directory
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'sponsors.db')
+# In app.py
+# Use the Render PostgreSQL database URL if available, otherwise fall back to SQLite for local dev
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///' + os.path.join(instance_path, 'sponsors.db'))
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Make cookies work when frontend is served from same-origin or a dev server
